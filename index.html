@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INCLUTECH 360 | Portal Inclusivo</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Outfit:wght@200;400;700;900&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS v4 via CDN -->
+  <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+  <style type="text/tailwindcss">
+    @theme {
+      --color-gold: #dcb38a;
+      --color-light: #fdfcee;
+      --color-bg: #070504;
+      --color-brown: #1a0f0a;
+      --color-brown-light: #2a1c12;
+      --font-body: 'Outfit', sans-serif;
+      --font-cursive: 'Dancing Script', cursive;
+    }
+  </style>
+
+  <!-- GSAP -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+
+  <style>
+    :root {
+      --color-gold: #dcb38a;
+      --color-light: #fdfcee;
+      --color-bg: #070504;
+      --color-brown: #1a0f0a;
+    }
+
+    body {
+      background-color: var(--color-bg);
+      color: var(--color-light);
+      font-family: 'Outfit', sans-serif;
+      margin: 0;
+      overflow: hidden;
+      height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Universal Typography */
+    h1, h2, h3 { font-family: 'Outfit', sans-serif; }
+    .font-cursive { font-family: 'Dancing Script', cursive; }
+
+    /* Hero Background & Atmosphere */
+    .hero-bg {
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      background-image: url('./imagenes/fondo.png.jpg');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      filter: brightness(0.6) saturate(1.1) contrast(1.1);
+      transform: scale(1.05); /* for parallax */
+    }
+
+    .hero-bg-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      background: radial-gradient(circle at center 30%, transparent 20%, #070504 80%),
+                  linear-gradient(to top, #070504 5%, transparent 70%);
+      mix-blend-mode: multiply;
+    }
+
+    /* Physical "Showroom" Floor */
+    .floor-reflection {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 40vh;
+      background: linear-gradient(to top, rgba(26,15,10,0.98) 20%, transparent 100%);
+      border-top: 1px solid rgba(220,179,138, 0.15);
+      z-index: -1;
+      transform-style: preserve-3d;
+      transform: perspective(1000px) rotateX(60deg) scale(1.5);
+      transform-origin: bottom center;
+    }
+
+    /* Product Dioramas Layout */
+    .dioramas-container {
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      gap: 5vw;
+      width: 100%;
+      flex-grow: 1;
+      padding-bottom: 8vh;
+      perspective: 1200px;
+    }
+
+    .diorama-item {
+      position: relative;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 10;
+      /* Initial state for GSAP entrance */
+      opacity: 0;
+      transform: translateY(100px) translateZ(-200px) scale(0.8);
+    }
+
+    /* Image Asset */
+    .diorama-model {
+      position: relative;
+      width: clamp(160px, 18vw, 320px);
+      z-index: 2;
+      /* Transition mostly handled by GSAP, keeping this clean */
+    }
+
+    .diorama-img {
+      width: 100%;
+      height: auto;
+      filter: drop-shadow(0 20px 30px rgba(0,0,0,0.6));
+    }
+
+    /* 3-Layer Shadow System */
+    .shadow-system {
+      position: absolute;
+      bottom: -15px; /* Adjust according to base */
+      left: 50%;
+      transform: translateX(-50%);
+      width: 85%;
+      height: 25px;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    /* Active AO shadow (sharp) */
+    .shadow-ao {
+      position: absolute;
+      inset: 0;
+      width: 70%;
+      margin: 0 auto;
+      background: rgba(0, 0, 0, 0.95);
+      border-radius: 50%;
+      filter: blur(3px);
+      transform: scaleY(0.4);
+    }
+
+    /* Medium volume shadow */
+    .shadow-mid {
+      position: absolute;
+      inset: -10px;
+      background: rgba(26, 15, 10, 0.8);
+      border-radius: 50%;
+      filter: blur(12px);
+      transform: scaleY(0.4);
+    }
+
+    /* Wide ambient light scatter shadow using brown */
+    .shadow-broad {
+      position: absolute;
+      inset: -40px;
+      background: rgba(80, 50, 30, 0.3);
+      border-radius: 50%;
+      filter: blur(30px);
+      transform: scaleY(0.4);
+    }
+
+    /* Specular Reflection on wood */
+    .reflection-container {
+      position: absolute;
+      bottom: -15px; /* Match shadow-system bottom offset to anchor correctly */
+      left: 0;
+      width: 100%;
+      height: 100%;
+      transform-origin: bottom center;
+      transform: scaleY(-1);
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.35;
+      filter: blur(12px);
+    }
+
+    .reflection-img {
+      width: 100%;
+      height: auto;
+      -webkit-mask-image: linear-gradient(to bottom, transparent 10%, rgba(0,0,0,1) 80%);
+      mask-image: linear-gradient(to bottom, transparent 10%, rgba(0,0,0,1) 80%);
+    }
+
+    /* Hover Call to Action Tag */
+    .hover-tag {
+      position: absolute;
+      top: -70px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 15;
+    }
+
+    .hover-tag-text {
+      font-size: clamp(1.5rem, 2vw, 2.5rem);
+      color: var(--color-gold);
+      text-shadow: 0 0 20px rgba(220,179,138,0.4);
+      margin-bottom: 5px;
+      transform: translateY(10px);
+    }
+
+    .hover-tag svg {
+      width: 25px;
+      height: 35px;
+      stroke: var(--color-gold);
+      opacity: 0.8;
+    }
+    
+    .hover-tag .drawn-path {
+      stroke-dasharray: 150;
+      stroke-dashoffset: 150;
+    }
+
+    /* 3D Immersive Modal */
+    #modal {
+      position: fixed;
+      inset: 0;
+      z-index: 999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: clamp(1rem, 4vw, 4rem);
+      perspective: 2000px;
+    }
+
+    .modal-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(7,5,4,0.4);
+      backdrop-filter: blur(25px);
+      opacity: 0;
+    }
+
+    .modal-container {
+      position: relative;
+      width: 90%;
+      max-width: 1100px;
+      min-height: 50vh;
+      background: var(--color-bg);
+      border-radius: 30px;
+      overflow: hidden;
+      border: 1px solid rgba(220,179,138,0.2);
+      box-shadow: 0 50px 100px -20px rgba(0,0,0,0.9), inset 0 0 0 1px rgba(255,255,255,0.05);
+      opacity: 0;
+      /* Initial state for 3D flip */
+      transform: translateY(15vh) rotateX(15deg) scale(0.9);
+      transform-style: preserve-3d;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    @media (min-width: 768px) {
+      .modal-container {
+        flex-direction: row;
+      }
+      .modal-container[data-align="left"] { flex-direction: row-reverse; }
+      .modal-container[data-align="right"] { flex-direction: row; }
+      .modal-container[data-align="center"] { flex-direction: row; }
+    }
+
+    .modal-image-wrapper {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 2rem;
+      width: 100%;
+    }
+
+    .modal-image {
+      width: 100%;
+      max-width: 350px;
+      height: auto;
+      object-fit: contain;
+      filter: drop-shadow(0 20px 40px rgba(0,0,0,0.5));
+      transform: scale(0.8);
+      opacity: 0;
+    }
+
+    .modal-content {
+      flex: 1;
+      position: relative;
+      z-index: 10;
+      padding: clamp(2rem, 4vw, 4rem);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      text-align: left;
+    }
+
+    .close-modal {
+      position: absolute;
+      top: 2.5rem;
+      right: 2.5rem;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: rgba(26,15,10,0.6);
+      border: 1px solid rgba(220,179,138,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 50;
+      color: var(--color-gold);
+      transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+      backdrop-filter: blur(10px);
+    }
+
+    .close-modal:hover {
+      background: var(--color-gold);
+      color: var(--color-bg);
+      transform: scale(1.1) rotate(90deg);
+    }
+
+    /* Detail Elements */
+    .detail-tag {
+      font-size: 1.25rem;
+      letter-spacing: 0.2em;
+      color: var(--color-gold);
+      margin-bottom: 1rem;
+      text-transform: uppercase;
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    .detail-title {
+      font-size: clamp(3rem, 6vw, 6rem);
+      font-weight: 900;
+      line-height: 1;
+      margin-bottom: 1.5rem;
+      background: linear-gradient(to right, #fff, var(--color-gold));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    .detail-desc {
+      font-size: clamp(1.125rem, 1.5vw, 1.5rem);
+      color: rgba(253,252,238,0.8);
+      max-width: 600px;
+      line-height: 1.6;
+      opacity: 0;
+      transform: translateY(20px);
+    }
+  </style>
+</head>
+<body class="antialiased">
+
+  <!-- Background Environment -->
+  <div class="hero-bg" id="hero-bg"></div>
+  <div class="hero-bg-overlay"></div>
+  
+  <!-- Content -->
+  <main class="relative w-full h-screen overflow-hidden flex flex-col items-center justify-between pt-[5vh]">
+    
+    <!-- Hero Header -->
+    <header class="relative z-10 flex flex-col items-center text-center mt-4 px-4">
+      <p class="font-cursive text-gold text-3xl md:text-4xl mb-4" style="color: theme('colors.gold')">Descubre el portal</p>
+      <h1 class="text-5xl md:text-8xl font-black text-light tracking-widest uppercase" style="text-shadow: 0 10px 40px rgba(0,0,0,0.8);">
+        INCLUTECH <span class="text-transparent bg-clip-text bg-gradient-to-r from-gold to-[#f0d4b0]">360</span>
+      </h1>
+      <p class="mt-6 text-lg md:text-2xl text-light/80 max-w-2xl font-light">
+        La experiencia definitiva de inclusión digital sin barreras.
+      </p>
+    </header>
+
+    <!-- Physical Ground -->
+    <div class="floor-reflection"></div>
+
+    <!-- Product Showcase -->
+    <div class="dioramas-container" id="dioramas">
+      
+      <!-- Diorama 1: Academia -->
+      <div class="diorama-item" data-id="academia">
+        <div class="hover-tag">
+          <span class="hover-tag-text font-cursive">Academia</span>
+          <svg viewBox="0 0 40 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path class="drawn-path" d="M20 5 Q30 25 20 45 M10 35 L20 45 L30 35" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="diorama-model">
+          <img src="./imagenes/academia.png" alt="Academia" class="diorama-img">
+          <div class="reflection-container">
+            <img src="./imagenes/academia.png" alt="" class="reflection-img">
+          </div>
+        </div>
+        <div class="shadow-system">
+          <div class="shadow-broad"></div>
+          <div class="shadow-mid"></div>
+          <div class="shadow-ao"></div>
+        </div>
+      </div>
+
+      <!-- Diorama 2: Empresa -->
+      <div class="diorama-item" data-id="empresa">
+        <div class="hover-tag">
+          <span class="hover-tag-text font-cursive">Empresa</span>
+          <svg viewBox="0 0 40 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path class="drawn-path" d="M20 5 Q30 25 20 45 M10 35 L20 45 L30 35" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="diorama-model">
+          <img src="./imagenes/empresa.png" alt="Empresa" class="diorama-img">
+          <div class="reflection-container">
+            <img src="./imagenes/empresa.png" alt="" class="reflection-img">
+          </div>
+        </div>
+        <div class="shadow-system">
+          <div class="shadow-broad"></div>
+          <div class="shadow-mid"></div>
+          <div class="shadow-ao"></div>
+        </div>
+      </div>
+
+      <!-- Diorama 3: Productos -->
+      <div class="diorama-item" data-id="productos">
+        <div class="hover-tag">
+          <span class="hover-tag-text font-cursive">Productos</span>
+          <svg viewBox="0 0 40 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path class="drawn-path" d="M20 5 Q30 25 20 45 M10 35 L20 45 L30 35" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="diorama-model">
+          <img src="./imagenes/productos.png" alt="Productos" class="diorama-img">
+          <div class="reflection-container">
+            <img src="./imagenes/productos.png" alt="" class="reflection-img">
+          </div>
+        </div>
+        <div class="shadow-system">
+          <div class="shadow-broad"></div>
+          <div class="shadow-mid"></div>
+          <div class="shadow-ao"></div>
+        </div>
+      </div>
+
+      <!-- Diorama 4: Turismo -->
+      <div class="diorama-item" data-id="turismo">
+        <div class="hover-tag">
+          <span class="hover-tag-text font-cursive">Turismo</span>
+          <svg viewBox="0 0 40 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path class="drawn-path" d="M20 5 Q30 25 20 45 M10 35 L20 45 L30 35" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="diorama-model">
+          <img src="./imagenes/turismo.png" alt="Turismo" class="diorama-img">
+          <div class="reflection-container">
+            <img src="./imagenes/turismo.png" alt="" class="reflection-img">
+          </div>
+        </div>
+        <div class="shadow-system">
+          <div class="shadow-broad"></div>
+          <div class="shadow-mid"></div>
+          <div class="shadow-ao"></div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- 3D Detail Modal -->
+  <div id="modal">
+    <div class="modal-backdrop" id="modal-backdrop"></div>
+    <div class="modal-container" id="modal-container" data-align="left">
+      <button class="close-modal" id="close-modal" aria-label="Cerrar modal">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-8 h-8">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+      
+      <div class="modal-image-wrapper">
+        <img src="" alt="Fondo" class="modal-image" id="modal-bg">
+      </div>
+      
+      <div class="modal-content" id="modal-content">
+        <div class="max-w-xl">
+          <div class="detail-tag font-outfit" id="modal-tag">Explora</div>
+          <h2 class="detail-title" id="modal-title">Título</h2>
+          <p class="detail-desc" id="modal-desc">Descripción aquí.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // System Data for Modals
+    const dioramaData = {
+      'academia': {
+        title: 'Academia 360',
+        desc: 'Un entorno educativo inmersivo diseñado para romper barreras en el aprendizaje. Herramientas accesibles e interfaces intuitivas permiten un nivel de enseñanza adaptado a todas las capacidades.',
+        align: 'left'
+      },
+      'empresa': {
+        title: 'Entorno de Empresa',
+        desc: 'Soluciones corporativas de primer nivel enfocadas en la diversidad. Promovemos espacios laborales equitativos mediante tecnología adaptativa de vanguardia.',
+        align: 'right'
+      },
+      'productos': {
+        title: 'Productos Inclusivos',
+        desc: 'Innovación tangible centrada en el usuario. Descubre productos de hardware y software construidos desde cero bajo estándares universales de diseño accesible.',
+        align: 'center'
+      },
+      'turismo': {
+        title: 'Turismo Accesible',
+        desc: 'Experiencias de viaje ilimitadas y adaptadas para todos. Rompemos las barreras físicas para que el descubrimiento del mundo esté al alcance de cada persona.',
+        align: 'left'
+      }
+    };
+
+    // GSAP Entrance Animations
+    window.addEventListener('load', () => {
+      // Header entrance
+      gsap.from('header p', { y: 30, opacity: 0, duration: 1, delay: 0.2, ease: 'power3.out' });
+      gsap.from('header h1', { y: 50, opacity: 0, duration: 1.2, delay: 0.4, ease: 'back.out(1.5)' });
+      gsap.from('header .text-lg', { y: 30, opacity: 0, duration: 1, delay: 0.6, ease: 'power3.out' });
+
+      // Dioramas Stagger Entrance
+      gsap.to('.diorama-item', {
+        y: 0,
+        z: 0,
+        scale: 1,
+        opacity: 1,
+        duration: 1.4,
+        stagger: 0.2,
+        delay: 0.8,
+        ease: 'back.out(1.2)'
+      });
+    });
+
+    // Diorama Interactions
+    const dioramas = document.querySelectorAll('.diorama-item');
+    
+    dioramas.forEach(item => {
+      const model = item.querySelector('.diorama-model');
+      const img = item.querySelector('.diorama-img');
+      const tag = item.querySelector('.hover-tag');
+      const tagText = item.querySelector('.hover-tag-text');
+      const svgPath = item.querySelector('.drawn-path');
+      const shadowAO = item.querySelector('.shadow-ao');
+      const shadowMid = item.querySelector('.shadow-mid');
+      const reflection = item.querySelector('.reflection-container');
+
+      // Hover In
+      item.addEventListener('mouseenter', () => {
+        // Model Lift & Scale
+        gsap.to(model, {
+          y: -25,
+          scale: 1.15,
+          duration: 0.5,
+          ease: 'back.out(1.5)'
+        });
+        
+        // Image Glow Filter
+        gsap.to(img, {
+          filter: 'drop-shadow(0 30px 40px rgba(220,179,138,0.3)) brightness(1.1)',
+          duration: 0.4
+        });
+
+        // Shadows disperse and soften
+        gsap.to(shadowAO, { scale: 0.8, opacity: 0.5, duration: 0.4 });
+        gsap.to(shadowMid, { scale: 1.2, opacity: 0.3, duration: 0.4 });
+
+        // Reflection fade and move setup
+        gsap.to(reflection, {
+          y: 10,
+          opacity: 0.15,
+          scale: 1.05,
+          duration: 0.5,
+          ease: 'power2.out'
+        });
+
+        // Hover Tag entrance
+        gsap.to(tag, { opacity: 1, duration: 0.3 });
+        gsap.to(tagText, { y: 0, duration: 0.4, ease: 'back.out(1)' });
+        gsap.to(svgPath, { strokeDashoffset: 0, duration: 0.6, ease: 'power2.inOut', delay: 0.1 });
+      });
+
+      // Hover Out
+      item.addEventListener('mouseleave', () => {
+        // Reset Model Lift & Scale
+        gsap.to(model, {
+          y: 0,
+          scale: 1,
+          duration: 0.5,
+          ease: 'power3.out'
+        });
+        
+        // Reset Image Glow
+        gsap.to(img, {
+          filter: 'drop-shadow(0 20px 30px rgba(0,0,0,0.6)) brightness(1)',
+          duration: 0.4
+        });
+
+        // Reset Shadows
+        gsap.to(shadowAO, { scale: 1, opacity: 1, duration: 0.4 });
+        gsap.to(shadowMid, { scale: 1, opacity: 1, duration: 0.4 });
+
+        // Reset Reflection
+        gsap.to(reflection, {
+          y: 0,
+          opacity: 0.35,
+          scale: 1,
+          duration: 0.5,
+          ease: 'power3.out'
+        });
+
+        // Detail Tag Exit
+        gsap.to(tag, { opacity: 0, duration: 0.2 });
+        gsap.to(tagText, { y: 10, duration: 0.2 });
+        gsap.to(svgPath, { strokeDashoffset: 150, duration: 0.2 });
+      });
+
+      // Click to Open Modal
+      item.addEventListener('click', () => {
+        const id = item.getAttribute('data-id');
+        openModal(id, img.src);
+      });
+    });
+
+    // Modal Interactions
+    const modal = document.getElementById('modal');
+    const modalBackdrop = document.getElementById('modal-backdrop');
+    const modalContainer = document.getElementById('modal-container');
+    const closeModalBtn = document.getElementById('close-modal');
+    
+    // Modal Content Targets
+    const modalBg = document.getElementById('modal-bg');
+    const modalContent = document.getElementById('modal-content');
+    const mTitle = document.getElementById('modal-title');
+    const mDesc = document.getElementById('modal-desc');
+    const mTag = document.getElementById('modal-tag');
+
+    function openModal(id, imgSrc) {
+      const data = dioramaData[id];
+      if(!data) return;
+
+      // Set content
+      mTitle.textContent = data.title;
+      mDesc.textContent = data.desc;
+      mTag.textContent = id.toUpperCase();
+      
+      // Update background to the diorama image itself for a beautiful immersive crossover
+      modalBg.src = imgSrc;
+
+      // Set alignment for dynamic layout
+      modalContainer.setAttribute('data-align', data.align);
+
+      // Reset content animation states
+      gsap.set([mTitle, mDesc, mTag], { y: 30, opacity: 0 });
+      gsap.set(modalBg, { scale: 0.8, opacity: 0 });
+
+      // Show modal wrapper
+      modal.style.display = 'flex';
+
+      // 3D Reveal Sequence
+      const tl = gsap.timeline();
+      
+      tl.to(modalBackdrop, { opacity: 1, duration: 0.4, ease: 'power2.out' })
+        .to(modalContainer, {
+          y: 0,
+          rotateX: 0,
+          scale: 1,
+          opacity: 1,
+          duration: 0.8,
+          ease: 'power4.out'
+        }, "-=0.2")
+        // Animate content staggered
+        .to(mTag, { y: 0, opacity: 1, duration: 0.5, ease: 'power2.out' }, "-=0.2")
+        .to(mTitle, { y: 0, opacity: 1, duration: 0.6, ease: 'power2.out' }, "-=0.3")
+        .to(mDesc, { y: 0, opacity: 1, duration: 0.6, ease: 'power2.out' }, "-=0.4")
+        .to(modalBg, { scale: 1, opacity: 1, duration: 0.8, ease: 'back.out(1.5)' }, "-=0.6");
+    }
+
+    function closeModal() {
+      const tl = gsap.timeline({
+        onComplete: () => {
+          modal.style.display = 'none';
+        }
+      });
+      
+      tl.to([mTag, mTitle, mDesc], { y: -20, opacity: 0, duration: 0.3, stagger: 0.05, ease: 'power2.in' })
+        .to(modalBg, { scale: 0.8, opacity: 0, duration: 0.3, ease: 'power2.in' }, "-=0.2")
+        .to(modalContainer, {
+          y: 150,
+          rotateX: -10,
+          scale: 0.95,
+          opacity: 0,
+          duration: 0.6,
+          ease: 'power3.in'
+        }, "-=0.2")
+        .to(modalBackdrop, { opacity: 0, duration: 0.4, ease: 'power2.in' }, "-=0.4");
+    }
+
+    closeModalBtn.addEventListener('click', closeModal);
+    modalBackdrop.addEventListener('click', closeModal);
+
+  </script>
+</body>
+</html>
